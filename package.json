@@ -19,7 +19,13 @@
 				"command": "giturl.open",
 				"title": "GitUrl Open"
 			}
-		]
+		],
+        "menus": {
+            "editor/context": [{
+                "command": "giturl.open",
+                "group": "zz_commands"
+            }]
+        }
 	},
 	"scripts": {
 		"test": "node ./test/runTest.js"

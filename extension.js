@@ -4,7 +4,7 @@ const vscode = require('vscode');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-    let disposable = vscode.commands.registerCommand('extension.helloWorld', function () {
+    let disposable = vscode.commands.registerCommand('giturl.open', function () {
         vscode.window.showInformationMessage('Hello World!');
     });
 
