@@ -44,7 +44,14 @@ function activate(context) {
 
         let activeLine = vscode.window.activeTextEditor.selection.active.line + 1;
 
-        let url = res.remoteRepoUrl + '/tree/master' + fileName.replace(localBase, '') + '#L' + activeLine;
+        let url = null;
+        if (res.remoteRepoUrl.match(/github\.com/)) {
+            url = res.remoteRepoUrl + '/tree/master' + fileName.replace(localBase, '') + '#L' + activeLine;
+        } else if (res.remoteRepoUrl.match(/bitbucket\.org/)) {
+            url = res.remoteRepoUrl + '/src/master' + fileName.replace(localBase, '') + '#lines-' + activeLine;
+        } else if (res.remoteRepoUrl.match(/gitlab\.com/)) {
+            url = res.remoteRepoUrl + '/blob/master' + fileName.replace(localBase, '') + '#L' + activeLine;
+        }
 
         vscode.env.openExternal(vscode.Uri.parse(url));
     }
