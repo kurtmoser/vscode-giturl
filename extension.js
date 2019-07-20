@@ -44,13 +44,21 @@ function activate(context) {
 
         let activeLine = vscode.window.activeTextEditor.selection.active.line + 1;
 
+        const urlHandler = require('url');
+        const pathHandler = require('path');
+        let repoSchema = 'https';
+        let repoUrlParts = urlHandler.parse(res.remoteRepoUrl);
+        let repoHost = repoUrlParts.hostname;
+        let repoBase = pathHandler.basename(pathHandler.dirname(repoUrlParts.path));
+        let repoName = pathHandler.basename(repoUrlParts.path);
+
         let url = null;
-        if (res.remoteRepoUrl.match(/github\.com/)) {
-            url = res.remoteRepoUrl + '/tree/master' + fileName.replace(localBase, '') + '#L' + activeLine;
-        } else if (res.remoteRepoUrl.match(/bitbucket\.org/)) {
-            url = res.remoteRepoUrl + '/src/master' + fileName.replace(localBase, '') + '#lines-' + activeLine;
-        } else if (res.remoteRepoUrl.match(/gitlab\.com/)) {
-            url = res.remoteRepoUrl + '/blob/master' + fileName.replace(localBase, '') + '#L' + activeLine;
+        if (repoHost.match(/github\.com/)) {
+            url = repoSchema + '://' + repoHost + '/' + repoBase + '/' + repoName + '/tree/master' + fileName.replace(localBase, '') + '#L' + activeLine
+        } else if (repoHost.match(/bitbucket\.org/)) {
+            url = repoSchema + '://' + repoHost + '/' + repoBase + '/' + repoName + '/src/master' + fileName.replace(localBase, '') + '#lines-' + activeLine
+        } else if (repoHost.match(/gitlab\.com/)) {
+            url = repoSchema + '://' + repoHost + '/' + repoBase + '/' + repoName + '/blob/master' + fileName.replace(localBase, '') + '#L' + activeLine
         }
 
         vscode.env.openExternal(vscode.Uri.parse(url));
