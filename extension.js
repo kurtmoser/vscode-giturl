@@ -8,6 +8,21 @@ function activate(context) {
     const exec = util.promisify(require('child_process').exec);
     const path = require('path');
 
+    let repoConf = [
+        {
+            domain: 'github.com',
+            url: '{protocol}://{domain}/{base}/{name}/tree/master/{path}#L{line}',
+        },
+        {
+            domain: 'bitbucket.org',
+            url: '{protocol}://{domain}/{base}/{name}/src/master/{path}#lines-{line}',
+        },
+        {
+            domain: 'gitlab.com',
+            url: '{protocol}://{domain}/{base}/{name}/blob/master/{path}#L{line}',
+        },
+    ];
+
     async function getGitConfig(dirname) {
         const { stdout, stderr } = await exec('git config --list', { cwd: dirname });
 
@@ -48,24 +63,40 @@ function activate(context) {
         const pathHandler = require('path');
         let repoSchema = 'https';
         let repoUrlParts = urlHandler.parse(res.remoteRepoUrl);
+        let relativePath = fileName.substring(localBase.length + 1);
         let repoHost = repoUrlParts.hostname;
         let repoBase = pathHandler.basename(pathHandler.dirname(repoUrlParts.path));
         let repoName = pathHandler.basename(repoUrlParts.path);
 
         let url = null;
-        if (repoHost.match(/github\.com/)) {
-            url = repoSchema + '://' + repoHost + '/' + repoBase + '/' + repoName + '/tree/master' + fileName.replace(localBase, '') + '#L' + activeLine
-        } else if (repoHost.match(/bitbucket\.org/)) {
-            url = repoSchema + '://' + repoHost + '/' + repoBase + '/' + repoName + '/src/master' + fileName.replace(localBase, '') + '#lines-' + activeLine
-        } else if (repoHost.match(/gitlab\.com/)) {
-            url = repoSchema + '://' + repoHost + '/' + repoBase + '/' + repoName + '/blob/master' + fileName.replace(localBase, '') + '#L' + activeLine
-        }
+        repoConf.forEach(conf => {
+            if (repoHost.match(conf.domain)) {
+                url = conf.url;
+                url = url.replace('{host}', repoHost);
+                url = url.replace('{schema}', repoSchema);
+                url = url.replace('{base}', repoBase);
+                url = url.replace('{name}', repoName);
+                url = url.replace('{path}', relativePath);
+                url = url.replace('{line}', activeLine);
+            }
+        });
 
-        vscode.env.openExternal(vscode.Uri.parse(url));
+        if (url) {
+            vscode.env.openExternal(vscode.Uri.parse(url));
+        }
+    }
+
+    function readUserConfig() {
+        const config = vscode.workspace.getConfiguration('giturl');
+
+        if (config.repos && Array.isArray(config.repos)) {
+            repoConf = repoConf.concat(config.repos);
+        }
     }
 
     let disposable = vscode.commands.registerCommand('giturl.open', function () {
-        vscode.window.showInformationMessage('Hello World!');
+        readUserConfig();
+
         giturlOpenWrapper();
     });
 
