@@ -11,17 +11,17 @@ function activate(context) {
     let repoConf = [
         {
             domain: 'github.com',
-            url: '{protocol}://{domain}/{base}/{name}/tree/master/{path}#L{line}',
+            url: '{protocol}://{domain}/{base}/{name}/tree/{branch}/{path}#L{line}',
             urlCurrentBranch: '{protocol}://{domain}/{base}/{name}/tree/{branch}/{path}#L{line}',
         },
         {
             domain: 'bitbucket.org',
-            url: '{protocol}://{domain}/{base}/{name}/src/master/{path}#lines-{line}',
+            url: '{protocol}://{domain}/{base}/{name}/src/{branch}/{path}#lines-{line}',
             urlCurrentBranch: '{protocol}://{domain}/{base}/{name}/src/{branch}/{path}#lines-{line}',
         },
         {
             domain: 'gitlab.com',
-            url: '{protocol}://{domain}/{base}/{name}/blob/master/{path}#L{line}',
+            url: '{protocol}://{domain}/{base}/{name}/blob/{branch}/{path}#L{line}',
             urlCurrentBranch: '{protocol}://{domain}/{base}/{name}/blob/{branch}/{path}#L{line}',
         },
     ];
@@ -60,11 +60,20 @@ function activate(context) {
         return res;
     }
 
+    async function getGitDefaultBranch(dirname) {
+        const { stdout, stderr } = await exec('git remote show origin | grep "HEAD branch" | sed "s/\\s*HEAD branch:\\s*//"', { cwd: dirname });
+
+        let res = stdout.replace(/\r?\n|\r/g, '');
+
+        return res;
+    }
+
     async function giturlOpenWrapper() {
         let fileName = vscode.window.activeTextEditor.document.fileName;
         let dirName = path.dirname(fileName);
 
         let localBase = await getGitLocalBase(dirName);
+        let branchName = await getGitDefaultBranch(dirName);
 
         res = await getGitConfig(dirName);
 
@@ -89,6 +98,7 @@ function activate(context) {
                 url = url.replace('{name}', repoName);
                 url = url.replace('{path}', relativePath);
                 url = url.replace('{line}', activeLine);
+                url = url.replace('{branch}', branchName);
             }
         });
 
@@ -102,7 +112,7 @@ function activate(context) {
         let dirName = path.dirname(fileName);
 
         let localBase = await getGitLocalBase(dirName);
-        let currentBranch = await getGitCurrentBranch(dirName);
+        let branchName = await getGitCurrentBranch(dirName);
 
         res = await getGitConfig(dirName);
 
@@ -120,7 +130,6 @@ function activate(context) {
         let url = null;
         repoConf.forEach(conf => {
             if (repoHost.match(conf.domain)) {
-                console.log(conf);
                 url = conf.urlCurrentBranch;
                 url = url.replace('{domain}', repoHost);
                 url = url.replace('{protocol}', repoSchema);
@@ -128,7 +137,7 @@ function activate(context) {
                 url = url.replace('{name}', repoName);
                 url = url.replace('{path}', relativePath);
                 url = url.replace('{line}', activeLine);
-                url = url.replace('{branch}', currentBranch);
+                url = url.replace('{branch}', branchName);
             }
         });
 
@@ -158,8 +167,6 @@ function activate(context) {
 
         giturlOpenCurrentBranchWrapper();
     }));
-
-    console.log(disposables);
 
     context.subscriptions.push(disposables);
 }
