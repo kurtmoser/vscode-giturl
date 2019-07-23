@@ -11,7 +11,8 @@
 	],
 	"activationEvents": [
 		"onCommand:giturl.open",
-		"onCommand:giturl.open-currentbranch"
+		"onCommand:giturl.open-currentbranch",
+		"onCommand:giturl.open-currentcommit"
 	],
 	"main": "./extension.js",
 	"contributes": {
@@ -23,6 +24,10 @@
 			{
 				"command": "giturl.open-currentbranch",
 				"title": "GitUrl Open (Current Branch)"
+			},
+			{
+				"command": "giturl.open-currentcommit",
+				"title": "GitUrl Open (Current Commit)"
 			}
 		],
         "menus": {
@@ -33,6 +38,10 @@
                 },
                 {
                     "command": "giturl.open-currentbranch",
+                    "group": "zz_commands"
+                },
+                {
+                    "command": "giturl.open-currentcommit",
                     "group": "zz_commands"
                 }
             ]
