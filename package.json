@@ -1,8 +1,9 @@
 {
     "name": "giturl",
     "displayName": "GitUrl",
-    "description": "",
+    "description": "Open git repos in browser",
     "version": "0.0.1",
+    "publisher": "Kurt Moser",
     "engines": {
         "vscode": "^1.36.0"
     },
