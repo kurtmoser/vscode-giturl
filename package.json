@@ -31,6 +31,37 @@
                 "title": "GitUrl Open (Current Commit)"
             }
         ],
+        "configuration": {
+            "title": "GitUrl",
+            "properties": {
+                "giturl.repos": {
+                    "type": "array",
+                    "description": "Custom repo descriptions",
+                    "items": {
+                        "type": "object",
+                        "description": "Repo description",
+                        "properties": {
+                            "domain": {
+                                "type": "string",
+                                "description": "Repo origin domain"
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "Default branch url format"
+                            },
+                            "urlCurrentBranch": {
+                                "type": "string",
+                                "description": "Current branch url format"
+                            },
+                            "urlCommit": {
+                                "type": "string",
+                                "description": "Current commit url format"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "menus": {
             "editor/context": [
                 {
