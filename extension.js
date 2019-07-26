@@ -103,6 +103,7 @@ function activate(context) {
         repoConf.forEach(conf => {
             if (repoHost.match(conf.domain)) {
                 url = conf.url;
+
                 url = url.replace('{domain}', repoHost);
                 url = url.replace('{protocol}', repoSchema);
                 url = url.replace('{base}', repoBase);
@@ -142,6 +143,10 @@ function activate(context) {
         repoConf.forEach(conf => {
             if (repoHost.match(conf.domain)) {
                 url = conf.urlCurrentBranch;
+                if (!url) {
+                    url = conf.url;
+                }
+
                 url = url.replace('{domain}', repoHost);
                 url = url.replace('{protocol}', repoSchema);
                 url = url.replace('{base}', repoBase);
@@ -181,6 +186,10 @@ function activate(context) {
         repoConf.forEach(conf => {
             if (repoHost.match(conf.domain)) {
                 url = conf.urlCommit;
+                if (!url) {
+                    url = conf.url;
+                }
+
                 url = url.replace('{domain}', repoHost);
                 url = url.replace('{protocol}', repoSchema);
                 url = url.replace('{base}', repoBase);
