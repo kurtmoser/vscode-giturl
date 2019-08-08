@@ -12,7 +12,7 @@
     ],
     "icon": "images/icon.png",
     "activationEvents": [
-        "onCommand:giturl.open",
+        "onCommand:giturl.open-defaultbranch",
         "onCommand:giturl.open-currentbranch",
         "onCommand:giturl.open-currentcommit"
     ],
@@ -20,8 +20,8 @@
     "contributes": {
         "commands": [
             {
-                "command": "giturl.open",
-                "title": "GitUrl Open"
+                "command": "giturl.open-defaultbranch",
+                "title": "GitUrl Open (Default Branch)"
             },
             {
                 "command": "giturl.open-currentbranch",
@@ -66,16 +66,16 @@
         "menus": {
             "editor/context": [
                 {
-                    "command": "giturl.open",
-                    "group": "zz_commands"
+                    "command": "giturl.open-defaultbranch",
+                    "group": "99_giturl@1"
                 },
                 {
                     "command": "giturl.open-currentbranch",
-                    "group": "zz_commands"
+                    "group": "99_giturl@2"
                 },
                 {
                     "command": "giturl.open-currentcommit",
-                    "group": "zz_commands"
+                    "group": "99_giturl@3"
                 }
             ]
         }

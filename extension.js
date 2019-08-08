@@ -177,7 +177,7 @@ function activate(context) {
 
     let disposables = [];
 
-    disposables.push(vscode.commands.registerCommand('giturl.open', function () {
+    disposables.push(vscode.commands.registerCommand('giturl.open-defaultbranch', function () {
         readUserConfig();
 
         giturlOpenWrapper();
