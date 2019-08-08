@@ -6,7 +6,8 @@ const vscode = require('vscode');
 function activate(context) {
     const util = require('util');
     const exec = util.promisify(require('child_process').exec);
-    const path = require('path');
+    const pathHandler = require('path');
+    const urlHandler = require('url');
 
     let repoConf = [
         {
@@ -79,127 +80,88 @@ function activate(context) {
         return res;
     }
 
-    async function giturlOpenWrapper() {
+    function buildUrl(pattern, params) {
+        // Replace all placeholders in url with passed param values
+        for (let key in params) {
+            let searchPattern = '{' + key + '}';
+            pattern = pattern.replace(searchPattern, params[key]);
+        }
+
+        return pattern;
+    }
+
+    async function getUrlParams() {
         let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = path.dirname(fileName);
+        let dirName = pathHandler.dirname(fileName);
 
         let localBase = await getGitLocalBase(dirName);
-        let branchName = await getGitDefaultBranch(dirName);
+        let {remoteRepoUrl} = await getGitConfig(dirName);
+        let repoUrlParts = urlHandler.parse(remoteRepoUrl);
 
-        res = await getGitConfig(dirName);
+        let urlParams = {
+            domain: repoUrlParts.hostname,
+            protocol: 'https',
+            base: pathHandler.basename(pathHandler.dirname(repoUrlParts.path)),
+            name: pathHandler.basename(repoUrlParts.path),
+            path: fileName.substring(localBase.length + 1),
+            line: vscode.window.activeTextEditor.selection.active.line + 1,
+        };
 
-        let activeLine = vscode.window.activeTextEditor.selection.active.line + 1;
+        return urlParams;
+    }
 
-        const urlHandler = require('url');
-        const pathHandler = require('path');
-        let repoSchema = 'https';
-        let repoUrlParts = urlHandler.parse(res.remoteRepoUrl);
-        let relativePath = fileName.substring(localBase.length + 1);
-        let repoHost = repoUrlParts.hostname;
-        let repoBase = pathHandler.basename(pathHandler.dirname(repoUrlParts.path));
-        let repoName = pathHandler.basename(repoUrlParts.path);
+    async function giturlOpenWrapper() {
+        let urlParams = await getUrlParams();
 
-        let url = null;
-        repoConf.forEach(conf => {
-            if (repoHost.match(conf.domain)) {
-                url = conf.url;
-
-                url = url.replace('{domain}', repoHost);
-                url = url.replace('{protocol}', repoSchema);
-                url = url.replace('{base}', repoBase);
-                url = url.replace('{name}', repoName);
-                url = url.replace('{path}', relativePath);
-                url = url.replace('{line}', activeLine);
-                url = url.replace('{branch}', branchName);
-            }
+        // Find conf according to the domain of repo
+        let conf = repoConf.find((item) => {
+            return item.domain == urlParams.domain;
         });
 
+        let fileName = vscode.window.activeTextEditor.document.fileName;
+        let dirName = pathHandler.dirname(fileName);
+        let branchName = await getGitDefaultBranch(dirName);
+        urlParams.branch = branchName;
+
+        let url = buildUrl(conf.url, urlParams);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
     }
 
     async function giturlOpenCurrentBranchWrapper() {
-        let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = path.dirname(fileName);
+        let urlParams = await getUrlParams();
 
-        let localBase = await getGitLocalBase(dirName);
-        let branchName = await getGitCurrentBranch(dirName);
-
-        res = await getGitConfig(dirName);
-
-        let activeLine = vscode.window.activeTextEditor.selection.active.line + 1;
-
-        const urlHandler = require('url');
-        const pathHandler = require('path');
-        let repoSchema = 'https';
-        let repoUrlParts = urlHandler.parse(res.remoteRepoUrl);
-        let relativePath = fileName.substring(localBase.length + 1);
-        let repoHost = repoUrlParts.hostname;
-        let repoBase = pathHandler.basename(pathHandler.dirname(repoUrlParts.path));
-        let repoName = pathHandler.basename(repoUrlParts.path);
-
-        let url = null;
-        repoConf.forEach(conf => {
-            if (repoHost.match(conf.domain)) {
-                url = conf.urlCurrentBranch;
-                if (!url) {
-                    url = conf.url;
-                }
-
-                url = url.replace('{domain}', repoHost);
-                url = url.replace('{protocol}', repoSchema);
-                url = url.replace('{base}', repoBase);
-                url = url.replace('{name}', repoName);
-                url = url.replace('{path}', relativePath);
-                url = url.replace('{line}', activeLine);
-                url = url.replace('{branch}', branchName);
-            }
+        // Find conf according to the domain of repo
+        let conf = repoConf.find((item) => {
+            return item.domain == urlParams.domain;
         });
 
+        let fileName = vscode.window.activeTextEditor.document.fileName;
+        let dirName = pathHandler.dirname(fileName);
+        let branchName = await getGitCurrentBranch(dirName);
+        urlParams.branch = branchName;
+
+        let url = buildUrl(conf.urlCurrentBranch, urlParams);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
     }
 
     async function giturlOpenCurrentCommitWrapper() {
-        let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = path.dirname(fileName);
+        let urlParams = await getUrlParams();
 
-        let localBase = await getGitLocalBase(dirName);
-        let commitId = await getGitCurrentCommit(dirName, fileName);
-
-        res = await getGitConfig(dirName);
-
-        let activeLine = vscode.window.activeTextEditor.selection.active.line + 1;
-
-        const urlHandler = require('url');
-        const pathHandler = require('path');
-        let repoSchema = 'https';
-        let repoUrlParts = urlHandler.parse(res.remoteRepoUrl);
-        let relativePath = fileName.substring(localBase.length + 1);
-        let repoHost = repoUrlParts.hostname;
-        let repoBase = pathHandler.basename(pathHandler.dirname(repoUrlParts.path));
-        let repoName = pathHandler.basename(repoUrlParts.path);
-
-        let url = null;
-        repoConf.forEach(conf => {
-            if (repoHost.match(conf.domain)) {
-                url = conf.urlCommit;
-                if (!url) {
-                    url = conf.url;
-                }
-
-                url = url.replace('{domain}', repoHost);
-                url = url.replace('{protocol}', repoSchema);
-                url = url.replace('{base}', repoBase);
-                url = url.replace('{name}', repoName);
-                url = url.replace('{path}', relativePath);
-                url = url.replace('{line}', activeLine);
-                url = url.replace('{commit}', commitId);
-            }
+        // Find conf according to the domain of repo
+        let conf = repoConf.find((item) => {
+            return item.domain == urlParams.domain;
         });
 
+        let fileName = vscode.window.activeTextEditor.document.fileName;
+        let dirName = pathHandler.dirname(fileName);
+        let commitId = await getGitCurrentCommit(dirName, fileName);
+        urlParams.commit = commitId;
+
+        let url = buildUrl(conf.urlCommit, urlParams);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
