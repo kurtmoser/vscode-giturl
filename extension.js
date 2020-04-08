@@ -72,9 +72,10 @@ function activate(context) {
     }
 
     async function getGitDefaultBranch(dirname) {
-        const { stdout, stderr } = await exec('git remote show origin | grep "HEAD branch" | sed "s/\\s*HEAD branch:\\s*//"', { cwd: dirname });
+        const { stdout, stderr } = await exec('git symbolic-ref refs/remotes/origin/HEAD', { cwd: dirname });
 
         let res = stdout.replace(/\r?\n|\r/g, '');
+        res = res.replace(/^refs\/remotes\/origin\//, '');
 
         return res;
     }
