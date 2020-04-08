@@ -7,7 +7,6 @@ function activate(context) {
     const util = require('util');
     const exec = util.promisify(require('child_process').exec);
     const pathHandler = require('path');
-    const urlHandler = require('url');
 
     let repoConf = [
         {
@@ -45,7 +44,7 @@ function activate(context) {
 
         let lines = stdout.match(/[^\r\n]+/g);
         lines.forEach(line => {
-            let res = line.match(/^remote\.origin\.url=(.+)\.git$/);
+            let res = line.match(/^remote\.origin\.url=(.+)$/);
             if (res) {
                 remoteRepoUrl = res[1];
             }
@@ -98,13 +97,29 @@ function activate(context) {
         return pattern;
     }
 
+    function parseRemoteOrigin(remoteOrigin) {
+        let remoteOriginParts = remoteOrigin.match(/^[^:]+:\/\/([^\/]+)\/.*?([^\/]+)\/([^\/]+)\.git$/);
+
+        if (!remoteOriginParts) {
+            remoteOriginParts = remoteOrigin.match(/^[^@]+@([^:]+):.*?([^\/]+)\/([^\/]+)\.git$/);
+        }
+
+        if (remoteOriginParts) {
+            return {
+                domain: remoteOriginParts[1],
+                user: remoteOriginParts[2],
+                repo: remoteOriginParts[3],
+            }
+        }
+    }
+
     async function getUrlParams() {
         let fileName = vscode.window.activeTextEditor.document.fileName;
         let dirName = pathHandler.dirname(fileName);
 
         let localBase = await getGitLocalBase(dirName);
         let {remoteRepoUrl} = await getGitConfig(dirName);
-        let repoUrlParts = urlHandler.parse(remoteRepoUrl);
+        let remoteOriginParts = parseRemoteOrigin(remoteRepoUrl);
 
         let lineStart = vscode.window.activeTextEditor.selection.start.line + 1;
         let lineEnd = vscode.window.activeTextEditor.selection.end.line + 1;
@@ -113,9 +128,9 @@ function activate(context) {
         }
 
         let urlParams = {
-            domain: repoUrlParts.hostname,
-            user: pathHandler.basename(pathHandler.dirname(repoUrlParts.path)),
-            repo: pathHandler.basename(repoUrlParts.path),
+            domain: remoteOriginParts.domain,
+            user: remoteOriginParts.user,
+            repo: remoteOriginParts.repo,
             path: fileName.substring(localBase.length + 1),
             line: lineStart,
             line_end: lineEnd,
