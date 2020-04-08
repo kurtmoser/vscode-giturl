@@ -12,21 +12,29 @@ function activate(context) {
     let repoConf = [
         {
             domain: 'github.com',
-            url: '{protocol}://{domain}/{base}/{name}/tree/{branch}/{path}#L{line}',
-            urlCurrentBranch: '{protocol}://{domain}/{base}/{name}/tree/{branch}/{path}#L{line}',
-            urlCommit: '{protocol}://{domain}/{base}/{name}/tree/{commit}/{path}#L{line}',
+            url: 'https://{domain}/{user}/{repo}/blob/{revision}/{path}',
+            line: '#L{line}',
+            lineRange: '#L{line}-L{line_end}',
         },
         {
             domain: 'bitbucket.org',
-            url: '{protocol}://{domain}/{base}/{name}/src/{branch}/{path}#lines-{line}',
-            urlCurrentBranch: '{protocol}://{domain}/{base}/{name}/src/{branch}/{path}#lines-{line}',
-            urlCommit: '{protocol}://{domain}/{base}/{name}/src/{commit}/{path}#lines-{line}',
+            url: 'https://{domain}/{user}/{repo}/src/{revision}/{path}',
+            line: '#lines-{line}',
+            lineRange: '#lines-{line}:{line_end}',
         },
         {
             domain: 'gitlab.com',
-            url: '{protocol}://{domain}/{base}/{name}/blob/{branch}/{path}#L{line}',
-            urlCurrentBranch: '{protocol}://{domain}/{base}/{name}/blob/{branch}/{path}#L{line}',
-            urlCommit: '{protocol}://{domain}/{base}/{name}/blob/{commit}/{path}#L{line}',
+            url: 'https://{domain}/{user}/{repo}/blob/{revision}/{path}',
+            line: '#L{line}',
+            lineRange: '#L{line}-{line_end}',
+        },
+        {
+            domain: '_bitbucket_selfhosted',
+            url: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}',
+            urlCommit: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}?at={revision}',
+            urlBranch: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}?at=refs/heads/{revision}',
+            line: '#{line}',
+            lineRange: '#{line}-{line_end}',
         },
     ];
 
@@ -98,13 +106,19 @@ function activate(context) {
         let {remoteRepoUrl} = await getGitConfig(dirName);
         let repoUrlParts = urlHandler.parse(remoteRepoUrl);
 
+        let lineStart = vscode.window.activeTextEditor.selection.start.line + 1;
+        let lineEnd = vscode.window.activeTextEditor.selection.end.line + 1;
+        if (lineEnd > lineStart && vscode.window.activeTextEditor.selection.end.character == 0) {
+            lineEnd--;
+        }
+
         let urlParams = {
             domain: repoUrlParts.hostname,
-            protocol: 'https',
-            base: pathHandler.basename(pathHandler.dirname(repoUrlParts.path)),
-            name: pathHandler.basename(repoUrlParts.path),
+            user: pathHandler.basename(pathHandler.dirname(repoUrlParts.path)),
+            repo: pathHandler.basename(repoUrlParts.path),
             path: fileName.substring(localBase.length + 1),
-            line: vscode.window.activeTextEditor.selection.active.line + 1,
+            line: lineStart,
+            line_end: lineEnd,
         };
 
         return urlParams;
@@ -121,9 +135,17 @@ function activate(context) {
         let fileName = vscode.window.activeTextEditor.document.fileName;
         let dirName = pathHandler.dirname(fileName);
         let branchName = await getGitDefaultBranch(dirName);
-        urlParams.branch = branchName;
+        urlParams.revision = branchName;
 
-        let url = buildUrl(conf.url, urlParams);
+        let url = conf.url;
+
+        if (urlParams.line_end != urlParams.line && 'lineRange' in conf) {
+            url += conf.lineRange;
+        } else if ('line' in conf) {
+            url += conf.line;
+        }
+
+        url = buildUrl(url, urlParams);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
@@ -140,9 +162,20 @@ function activate(context) {
         let fileName = vscode.window.activeTextEditor.document.fileName;
         let dirName = pathHandler.dirname(fileName);
         let branchName = await getGitCurrentBranch(dirName);
-        urlParams.branch = branchName;
+        urlParams.revision = branchName;
 
-        let url = buildUrl(conf.urlCurrentBranch, urlParams);
+        let url = conf.url;
+        if ('urlBranch' in conf) {
+            url = conf.urlBranch;
+        }
+
+        if (urlParams.line_end != urlParams.line && 'lineRange' in conf) {
+            url += conf.lineRange;
+        } else if ('line' in conf) {
+            url += conf.line;
+        }
+
+        url = buildUrl(url, urlParams);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
@@ -159,9 +192,20 @@ function activate(context) {
         let fileName = vscode.window.activeTextEditor.document.fileName;
         let dirName = pathHandler.dirname(fileName);
         let commitId = await getGitCurrentCommit(dirName, fileName);
-        urlParams.commit = commitId;
+        urlParams.revision = commitId;
 
-        let url = buildUrl(conf.urlCommit, urlParams);
+        let url = conf.url;
+        if ('urlCommit' in conf) {
+            url = conf.urlCommit;
+        }
+
+        if (urlParams.line_end != urlParams.line && 'lineRange' in conf) {
+            url += conf.lineRange;
+        } else if ('line' in conf) {
+            url += conf.line;
+        }
+
+        url = buildUrl(url, urlParams);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
