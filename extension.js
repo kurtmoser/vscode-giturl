@@ -39,6 +39,8 @@ function activate(context) {
 
     let repoData = {};
 
+    readUserConfig();
+
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(onActiveTextEditorChange));
     onActiveTextEditorChange();
 
@@ -193,6 +195,12 @@ function activate(context) {
             return item.domain == repoData.domain;
         });
 
+        if (!conf) {
+            conf = repoConf.find((item) => {
+                return item.domain == '_bitbucket_selfhosted';
+            });
+        }
+
         let url = conf.url;
 
         if (repoData.line_end != repoData.line && 'lineRange' in conf) {
@@ -217,6 +225,12 @@ function activate(context) {
         let conf = repoConf.find((item) => {
             return item.domain == repoData.domain;
         });
+
+        if (!conf) {
+            conf = repoConf.find((item) => {
+                return item.domain == '_bitbucket_selfhosted';
+            });
+        }
 
         let url = conf.url;
         if ('urlBranch' in conf && repoData.currentBranch !== repoData.defaultBranch) {
@@ -246,6 +260,12 @@ function activate(context) {
             return item.domain == repoData.domain;
         });
 
+        if (!conf) {
+            conf = repoConf.find((item) => {
+                return item.domain == '_bitbucket_selfhosted';
+            });
+        }
+
         let url = conf.url;
         if ('urlCommit' in conf) {
             url = conf.urlCommit;
@@ -266,8 +286,8 @@ function activate(context) {
     function readUserConfig() {
         const config = vscode.workspace.getConfiguration('giturl');
 
-        if (config.repos && Array.isArray(config.repos)) {
-            repoConf = repoConf.concat(config.repos);
+        if (config.domains && Array.isArray(config.domains)) {
+            repoConf = repoConf.concat(config.domains);
         }
     }
 
