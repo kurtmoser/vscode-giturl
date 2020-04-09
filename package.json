@@ -12,24 +12,22 @@
     ],
     "icon": "images/icon.png",
     "activationEvents": [
-        "onCommand:giturl.open-defaultbranch",
-        "onCommand:giturl.open-currentbranch",
-        "onCommand:giturl.open-currentcommit"
+        "*"
     ],
     "main": "./extension.js",
     "contributes": {
         "commands": [
             {
-                "command": "giturl.open-defaultbranch",
-                "title": "GitUrl Open (Default Branch)"
+                "command": "giturl.open-currentcommit",
+                "title": "Open Commit Url..."
             },
             {
                 "command": "giturl.open-currentbranch",
-                "title": "GitUrl Open (Current Branch)"
+                "title": "Open Branch Url..."
             },
             {
-                "command": "giturl.open-currentcommit",
-                "title": "GitUrl Open (Current Commit)"
+                "command": "giturl.open-defaultbranch",
+                "title": "Open Default Branch Url..."
             }
         ],
         "configuration": {
@@ -66,16 +64,19 @@
         "menus": {
             "editor/context": [
                 {
-                    "command": "giturl.open-defaultbranch",
-                    "group": "99_giturl@1"
+                    "command": "giturl.open-currentcommit",
+                    "group": "99_giturl@1",
+                    "when": "inGitUrlRepo"
                 },
                 {
                     "command": "giturl.open-currentbranch",
-                    "group": "99_giturl@2"
+                    "group": "99_giturl@2",
+                    "when": "inGitUrlRepo"
                 },
                 {
-                    "command": "giturl.open-currentcommit",
-                    "group": "99_giturl@3"
+                    "command": "giturl.open-defaultbranch",
+                    "group": "99_giturl@3",
+                    "when": "inGitUrlRepo && !inGitUrlDefaultBranch"
                 }
             ]
         }

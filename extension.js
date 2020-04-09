@@ -37,22 +37,77 @@ function activate(context) {
         },
     ];
 
-    async function getGitConfig(dirname) {
+    let repoData = {};
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(onActiveTextEditorChange));
+    onActiveTextEditorChange();
+
+    async function onActiveTextEditorChange() {
+        vscode.commands.executeCommand('setContext', 'inGitUrlRepo', false);
+        vscode.commands.executeCommand('setContext', 'inGitUrlDefaultBranch', false);
+
+        // On same startup situations we don't have activeTextEditor available
+        if (!vscode.window.activeTextEditor) {
+            return;
+        }
+
+        let fileName = vscode.window.activeTextEditor.document.fileName;
+        let dirName = pathHandler.dirname(fileName);
+
+        repoData = {};
+
+        // Return early if unable to detect dir. This happens on new/unsaved
+        // files, but also for example when activating 'Output' window.
+        if (dirName === '.') {
+            return;
+        }
+
+        let localBase = await getGitLocalBase(dirName);
+
+        if (!localBase) {
+            return;
+        }
+
+        vscode.commands.executeCommand('setContext', 'inGitUrlRepo', true);
+
+        let remoteOrigin = await getRemoteOrigin(dirName);
+        let remoteOriginParts = await parseRemoteOrigin(remoteOrigin);
+
+        let currentCommit = await getGitCurrentCommit(dirName, fileName);
+        let currentBranch = await getGitCurrentBranch(dirName);
+        let defaultBranch = await getGitDefaultBranch(dirName);
+
+        if (currentBranch === defaultBranch) {
+            vscode.commands.executeCommand('setContext', 'inGitUrlDefaultBranch', true);
+        }
+
+        repoData = {
+            'domain': remoteOriginParts.domain,
+            'user': remoteOriginParts.user,
+            'repo': remoteOriginParts.repo,
+            'path': fileName.substring(localBase.length + 1),
+
+            'currentCommit': currentCommit,
+            'currentBranch': currentBranch,
+            'defaultBranch': defaultBranch,
+        };
+    }
+
+    async function getRemoteOrigin(dirname) {
         const { stdout, stderr } = await exec('git config --list', { cwd: dirname });
 
-        let remoteRepoUrl = '';
-
+        let remoteOrigin = null;
         let lines = stdout.match(/[^\r\n]+/g);
         lines.forEach(line => {
             let res = line.match(/^remote\.origin\.url=(.+)$/);
             if (res) {
-                remoteRepoUrl = res[1];
+                remoteOrigin = res[1];
+
+                return;
             }
         });
 
-        return {
-            remoteRepoUrl: remoteRepoUrl,
-        };
+        return remoteOrigin;
     }
 
     async function getGitLocalBase(dirname) {
@@ -114,114 +169,95 @@ function activate(context) {
         }
     }
 
-    async function getUrlParams() {
-        let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = pathHandler.dirname(fileName);
-
-        let localBase = await getGitLocalBase(dirName);
-        let {remoteRepoUrl} = await getGitConfig(dirName);
-        let remoteOriginParts = parseRemoteOrigin(remoteRepoUrl);
-
-        let lineStart = vscode.window.activeTextEditor.selection.start.line + 1;
-        let lineEnd = vscode.window.activeTextEditor.selection.end.line + 1;
-        if (lineEnd > lineStart && vscode.window.activeTextEditor.selection.end.character == 0) {
+    function getSelectedLines(selection) {
+        let lineStart = selection.start.line + 1;
+        let lineEnd = selection.end.line + 1;
+        if (lineEnd > lineStart && selection.end.character == 0) {
             lineEnd--;
         }
 
-        let urlParams = {
-            domain: remoteOriginParts.domain,
-            user: remoteOriginParts.user,
-            repo: remoteOriginParts.repo,
-            path: fileName.substring(localBase.length + 1),
-            line: lineStart,
-            line_end: lineEnd,
+        return {
+            start: lineStart,
+            end: lineEnd,
         };
-
-        return urlParams;
     }
 
     async function giturlOpenWrapper() {
-        let urlParams = await getUrlParams();
+        let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
+        repoData.line = selectedLines.start;
+        repoData.line_end = selectedLines.end;
+        repoData.revision = repoData.defaultBranch;
 
         // Find conf according to the domain of repo
         let conf = repoConf.find((item) => {
-            return item.domain == urlParams.domain;
+            return item.domain == repoData.domain;
         });
-
-        let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = pathHandler.dirname(fileName);
-        let branchName = await getGitDefaultBranch(dirName);
-        urlParams.revision = branchName;
 
         let url = conf.url;
 
-        if (urlParams.line_end != urlParams.line && 'lineRange' in conf) {
+        if (repoData.line_end != repoData.line && 'lineRange' in conf) {
             url += conf.lineRange;
         } else if ('line' in conf) {
             url += conf.line;
         }
 
-        url = buildUrl(url, urlParams);
+        url = buildUrl(url, repoData);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
     }
 
     async function giturlOpenCurrentBranchWrapper() {
-        let urlParams = await getUrlParams();
+        let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
+        repoData.line = selectedLines.start;
+        repoData.line_end = selectedLines.end;
+        repoData.revision = repoData.currentBranch;
 
         // Find conf according to the domain of repo
         let conf = repoConf.find((item) => {
-            return item.domain == urlParams.domain;
+            return item.domain == repoData.domain;
         });
 
-        let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = pathHandler.dirname(fileName);
-        let branchName = await getGitCurrentBranch(dirName);
-        urlParams.revision = branchName;
-
         let url = conf.url;
-        if ('urlBranch' in conf) {
+        if ('urlBranch' in conf && repoData.currentBranch !== repoData.defaultBranch) {
             url = conf.urlBranch;
         }
 
-        if (urlParams.line_end != urlParams.line && 'lineRange' in conf) {
+        if (repoData.line_end != repoData.line && 'lineRange' in conf) {
             url += conf.lineRange;
         } else if ('line' in conf) {
             url += conf.line;
         }
 
-        url = buildUrl(url, urlParams);
+        url = buildUrl(url, repoData);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
     }
 
     async function giturlOpenCurrentCommitWrapper() {
-        let urlParams = await getUrlParams();
+        let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
+        repoData.line = selectedLines.start;
+        repoData.line_end = selectedLines.end;
+        repoData.revision = repoData.currentCommit;
 
         // Find conf according to the domain of repo
         let conf = repoConf.find((item) => {
-            return item.domain == urlParams.domain;
+            return item.domain == repoData.domain;
         });
-
-        let fileName = vscode.window.activeTextEditor.document.fileName;
-        let dirName = pathHandler.dirname(fileName);
-        let commitId = await getGitCurrentCommit(dirName, fileName);
-        urlParams.revision = commitId;
 
         let url = conf.url;
         if ('urlCommit' in conf) {
             url = conf.urlCommit;
         }
 
-        if (urlParams.line_end != urlParams.line && 'lineRange' in conf) {
+        if (repoData.line_end != repoData.line && 'lineRange' in conf) {
             url += conf.lineRange;
         } else if ('line' in conf) {
             url += conf.line;
         }
 
-        url = buildUrl(url, urlParams);
+        url = buildUrl(url, repoData);
         if (url) {
             vscode.env.openExternal(vscode.Uri.parse(url));
         }
