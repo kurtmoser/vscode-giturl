@@ -31,11 +31,11 @@ function activate(context) {
             line: '#{line}',
             lineRange: '#{line}-{line_end}',
         },
-  };
+    };
+
+    repoConf = syncRepoConf(repoConf);
 
     let repoData = {};
-
-    readUserConfig();
 
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(onActiveTextEditorChange));
     onActiveTextEditorChange();
@@ -44,7 +44,7 @@ function activate(context) {
         vscode.commands.executeCommand('setContext', 'inGitUrlRepo', false);
         vscode.commands.executeCommand('setContext', 'inGitUrlDefaultBranch', false);
 
-        // On same startup situations we don't have activeTextEditor available
+        // On some startup occasions we don't have activeTextEditor available
         if (!vscode.window.activeTextEditor) {
             return;
         }
@@ -93,7 +93,7 @@ function activate(context) {
 
     async function getRemoteOrigin(dirname) {
         try {
-            const {stdout} = await exec('git config --list', { cwd: dirname });
+            const { stdout } = await exec('git config --list', { cwd: dirname });
 
             let remoteOrigin = null;
             let lines = stdout.match(/[^\r\n]+/g);
@@ -113,7 +113,7 @@ function activate(context) {
 
     async function getGitLocalBase(dirname) {
         try {
-            const {stdout} = await exec('git rev-parse --show-toplevel', { cwd: dirname });
+            const { stdout } = await exec('git rev-parse --show-toplevel', { cwd: dirname });
 
             return stdout.trim();
         } catch(e) {
@@ -122,7 +122,7 @@ function activate(context) {
 
     async function getGitCurrentBranch(dirname) {
         try {
-            const {stdout} = await exec('git rev-parse --abbrev-ref HEAD', { cwd: dirname });
+            const { stdout } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: dirname });
 
             return stdout.trim();
         } catch(e) {
@@ -131,7 +131,7 @@ function activate(context) {
 
     async function getGitDefaultBranch(dirname) {
         try {
-            const {stdout} = await exec('git symbolic-ref refs/remotes/origin/HEAD', { cwd: dirname });
+            const { stdout } = await exec('git symbolic-ref refs/remotes/origin/HEAD', { cwd: dirname });
 
             return stdout.trim().replace(/^refs\/remotes\/origin\//, '');
         } catch(e) {
@@ -140,21 +140,11 @@ function activate(context) {
 
     async function getGitCurrentCommit(dirname, filename) {
         try {
-            const {stdout} = await exec('git rev-list -1 HEAD ' + filename, { cwd: dirname });
+            const { stdout } = await exec('git rev-list -1 HEAD ' + filename, { cwd: dirname });
 
             return stdout.trim();
         } catch(e) {
         }
-    }
-
-    function buildUrl(pattern, params) {
-        // Replace all placeholders in url with passed param values
-        for (let key in params) {
-            let searchPattern = '{' + key + '}';
-            pattern = pattern.replace(searchPattern, params[key]);
-        }
-
-        return pattern;
     }
 
     function parseRemoteOrigin(remoteOrigin) {
@@ -176,6 +166,7 @@ function activate(context) {
     function getSelectedLines(selection) {
         let lineStart = selection.start.line + 1;
         let lineEnd = selection.end.line + 1;
+
         if (lineEnd > lineStart && selection.end.character == 0) {
             lineEnd--;
         }
@@ -186,102 +177,75 @@ function activate(context) {
         };
     }
 
-    async function giturlOpenWrapper() {
+    function syncRepoConf(conf) {
+        const userconf = vscode.workspace.getConfiguration('giturl');
+
+        return {...userconf.domains, ...conf};
+    }
+
+    function getUrlPattern(urlType, domainKey, lineStart, lineEnd) {
+        let url = '';
+
+        if (!(domainKey in repoConf)) {
+            domainKey = '_bitbucket_selfhosted';
+        }
+
+        if (urlType === 'currentCommit' && 'urlCommit' in repoConf[domainKey]) {
+            url = repoConf[domainKey].urlCommit;
+        } else if (urlType === 'currentBranch' && 'urlBranch' in repoConf[domainKey]) {
+            url = repoConf[domainKey].urlBranch;
+        } else {
+            url = repoConf[domainKey].url;
+        }
+
+        if (lineEnd != lineStart && 'lineRange' in repoConf[domainKey]) {
+            url += repoConf[domainKey].lineRange;
+        } else if ('line' in repoConf[domainKey]) {
+            url += repoConf[domainKey].line;
+        }
+
+        return url;
+    }
+
+    function fillUrlPattern(url, data) {
+        for (let key in data) {
+            let searchPattern = '{' + key + '}';
+            url = url.replace(searchPattern, data[key]);
+        }
+
+        return url;
+    }
+
+    function openGitUrl(urlType) {
+        repoConf = syncRepoConf(repoConf);
+
         let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
         repoData.line = selectedLines.start;
         repoData.line_end = selectedLines.end;
-        repoData.revision = repoData.defaultBranch;
+        repoData.revision = repoData[urlType];
 
-        let conf = repoConf[repoData.domain] || repoConf._bitbucket_selfhosted;
-        let url = conf.url;
-
-        if (repoData.line_end != repoData.line && 'lineRange' in conf) {
-            url += conf.lineRange;
-        } else if ('line' in conf) {
-            url += conf.line;
-        }
-
-        url = buildUrl(url, repoData);
-        if (url) {
-            vscode.env.openExternal(vscode.Uri.parse(url));
-        }
+        let url = getUrlPattern(urlType, repoData.domain, repoData.line, repoData.line_end);
+        url = fillUrlPattern(url, repoData);
+        vscode.env.openExternal(vscode.Uri.parse(url));
     }
 
-    async function giturlOpenCurrentBranchWrapper() {
-        let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
-        repoData.line = selectedLines.start;
-        repoData.line_end = selectedLines.end;
-        repoData.revision = repoData.currentBranch;
-
-        let conf = repoConf[repoData.domain] || repoConf._bitbucket_selfhosted;
-        let url = conf.urlBranch || conf.url;
-
-        if (repoData.line_end != repoData.line && 'lineRange' in conf) {
-            url += conf.lineRange;
-        } else if ('line' in conf) {
-            url += conf.line;
-        }
-
-        url = buildUrl(url, repoData);
-        if (url) {
-            vscode.env.openExternal(vscode.Uri.parse(url));
-        }
-    }
-
-    async function giturlOpenCurrentCommitWrapper() {
-        let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
-        repoData.line = selectedLines.start;
-        repoData.line_end = selectedLines.end;
-        repoData.revision = repoData.currentCommit;
-
-        let conf = repoConf[repoData.domain] || repoConf._bitbucket_selfhosted;
-        let url = conf.urlCommit || conf.url;
-
-        if (repoData.line_end != repoData.line && 'lineRange' in conf) {
-            url += conf.lineRange;
-        } else if ('line' in conf) {
-            url += conf.line;
-        }
-
-        url = buildUrl(url, repoData);
-        if (url) {
-            vscode.env.openExternal(vscode.Uri.parse(url));
-        }
-    }
-
-    function readUserConfig() {
-        const config = vscode.workspace.getConfiguration('giturl');
-
-        repoConf = {...config.domains, ...repoConf};
-    }
-
-    let disposables = [];
-
-    disposables.push(vscode.commands.registerCommand('giturl.open-defaultbranch', function () {
-        readUserConfig();
-
-        giturlOpenWrapper();
+    context.subscriptions.push(vscode.commands.registerCommand('giturl.open-currentcommit', function () {
+        openGitUrl('currentCommit');
     }));
 
-    disposables.push(vscode.commands.registerCommand('giturl.open-currentbranch', function () {
-        readUserConfig();
-
-        giturlOpenCurrentBranchWrapper();
+    context.subscriptions.push(vscode.commands.registerCommand('giturl.open-currentbranch', function () {
+        if (repoData.currentBranch === repoData.defaultBranch) {
+            openGitUrl('defaultBranch');
+        } else {
+            openGitUrl('currentBranch');
+        }
     }));
 
-    disposables.push(vscode.commands.registerCommand('giturl.open-currentcommit', function () {
-        readUserConfig();
-
-        giturlOpenCurrentCommitWrapper();
+    context.subscriptions.push(vscode.commands.registerCommand('giturl.open-defaultbranch', function () {
+        openGitUrl('defaultBranch');
     }));
-
-    context.subscriptions.push(disposables);
 }
-exports.activate = activate;
 
 function deactivate() {}
 
-module.exports = {
-    activate,
-    deactivate
-}
+module.exports = { activate, deactivate }
