@@ -33,16 +33,16 @@
         "configuration": {
             "title": "GitUrl",
             "properties": {
-                "giturl.repos": {
-                    "type": "array",
-                    "description": "Custom repo descriptions",
+                "giturl.domains": {
+                    "type": "object",
+                    "description": "Self-hosted git services",
                     "items": {
                         "type": "object",
-                        "description": "Repo description",
+                        "description": "Git service",
                         "properties": {
                             "domain": {
                                 "type": "string",
-                                "description": "Repo origin domain"
+                                "description": "Domain"
                             },
                             "url": {
                                 "type": "string",
@@ -55,6 +55,14 @@
                             "urlCommit": {
                                 "type": "string",
                                 "description": "Current commit url format"
+                            },
+                            "line": {
+                                "type": "string",
+                                "description": "Line fragment format"
+                            },
+                            "lineRange": {
+                                "type": "string",
+                                "description": "Line range fragment format"
                             }
                         }
                     }

@@ -8,34 +8,30 @@ function activate(context) {
     const exec = util.promisify(require('child_process').exec);
     const pathHandler = require('path');
 
-    let repoConf = [
-        {
-            domain: 'github.com',
+    let repoConf = {
+        'github.com': {
             url: 'https://{domain}/{user}/{repo}/blob/{revision}/{path}',
             line: '#L{line}',
             lineRange: '#L{line}-L{line_end}',
         },
-        {
-            domain: 'bitbucket.org',
+        'bitbucket.org': {
             url: 'https://{domain}/{user}/{repo}/src/{revision}/{path}',
             line: '#lines-{line}',
             lineRange: '#lines-{line}:{line_end}',
         },
-        {
-            domain: 'gitlab.com',
+        'gitlab.com': {
             url: 'https://{domain}/{user}/{repo}/blob/{revision}/{path}',
             line: '#L{line}',
             lineRange: '#L{line}-{line_end}',
         },
-        {
-            domain: '_bitbucket_selfhosted',
+        '_bitbucket_selfhosted': {
             url: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}',
             urlCommit: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}?at={revision}',
             urlBranch: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}?at=refs/heads/{revision}',
             line: '#{line}',
             lineRange: '#{line}-{line_end}',
         },
-    ];
+  };
 
     let repoData = {};
 
@@ -190,17 +186,7 @@ function activate(context) {
         repoData.line_end = selectedLines.end;
         repoData.revision = repoData.defaultBranch;
 
-        // Find conf according to the domain of repo
-        let conf = repoConf.find((item) => {
-            return item.domain == repoData.domain;
-        });
-
-        if (!conf) {
-            conf = repoConf.find((item) => {
-                return item.domain == '_bitbucket_selfhosted';
-            });
-        }
-
+        let conf = repoConf[repoData.domain] || repoConf._bitbucket_selfhosted;
         let url = conf.url;
 
         if (repoData.line_end != repoData.line && 'lineRange' in conf) {
@@ -221,21 +207,8 @@ function activate(context) {
         repoData.line_end = selectedLines.end;
         repoData.revision = repoData.currentBranch;
 
-        // Find conf according to the domain of repo
-        let conf = repoConf.find((item) => {
-            return item.domain == repoData.domain;
-        });
-
-        if (!conf) {
-            conf = repoConf.find((item) => {
-                return item.domain == '_bitbucket_selfhosted';
-            });
-        }
-
-        let url = conf.url;
-        if ('urlBranch' in conf && repoData.currentBranch !== repoData.defaultBranch) {
-            url = conf.urlBranch;
-        }
+        let conf = repoConf[repoData.domain] || repoConf._bitbucket_selfhosted;
+        let url = conf.urlBranch || conf.url;
 
         if (repoData.line_end != repoData.line && 'lineRange' in conf) {
             url += conf.lineRange;
@@ -255,21 +228,8 @@ function activate(context) {
         repoData.line_end = selectedLines.end;
         repoData.revision = repoData.currentCommit;
 
-        // Find conf according to the domain of repo
-        let conf = repoConf.find((item) => {
-            return item.domain == repoData.domain;
-        });
-
-        if (!conf) {
-            conf = repoConf.find((item) => {
-                return item.domain == '_bitbucket_selfhosted';
-            });
-        }
-
-        let url = conf.url;
-        if ('urlCommit' in conf) {
-            url = conf.urlCommit;
-        }
+        let conf = repoConf[repoData.domain] || repoConf._bitbucket_selfhosted;
+        let url = conf.urlCommit || conf.url;
 
         if (repoData.line_end != repoData.line && 'lineRange' in conf) {
             url += conf.lineRange;
@@ -286,9 +246,7 @@ function activate(context) {
     function readUserConfig() {
         const config = vscode.workspace.getConfiguration('giturl');
 
-        if (config.domains && Array.isArray(config.domains)) {
-            repoConf = repoConf.concat(config.domains);
-        }
+        repoConf = {...config.domains, ...repoConf};
     }
 
     let disposables = [];
