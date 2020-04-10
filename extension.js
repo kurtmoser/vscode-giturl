@@ -12,24 +12,24 @@ function activate(context) {
         'github.com': {
             url: 'https://{domain}/{user}/{repo}/blob/{revision}/{path}',
             line: '#L{line}',
-            lineRange: '#L{line}-L{line_end}',
+            lineRange: '#L{line}-L{lineEnd}',
         },
         'bitbucket.org': {
             url: 'https://{domain}/{user}/{repo}/src/{revision}/{path}',
             line: '#lines-{line}',
-            lineRange: '#lines-{line}:{line_end}',
+            lineRange: '#lines-{line}:{lineEnd}',
         },
         'gitlab.com': {
             url: 'https://{domain}/{user}/{repo}/blob/{revision}/{path}',
             line: '#L{line}',
-            lineRange: '#L{line}-{line_end}',
+            lineRange: '#L{line}-{lineEnd}',
         },
         '_bitbucket_selfhosted': {
             url: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}',
             urlCommit: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}?at={revision}',
             urlBranch: 'https://{domain}/projects/{user}/repos/{repo}/browse/{path}?at=refs/heads/{revision}',
             line: '#{line}',
-            lineRange: '#{line}-{line_end}',
+            lineRange: '#{line}-{lineEnd}',
         },
     };
 
@@ -221,10 +221,10 @@ function activate(context) {
 
         let selectedLines = getSelectedLines(vscode.window.activeTextEditor.selection);
         repoData.line = selectedLines.start;
-        repoData.line_end = selectedLines.end;
+        repoData.lineEnd = selectedLines.end;
         repoData.revision = repoData[urlType];
 
-        let url = getUrlPattern(urlType, repoData.domain, repoData.line, repoData.line_end);
+        let url = getUrlPattern(urlType, repoData.domain, repoData.line, repoData.lineEnd);
         url = fillUrlPattern(url, repoData);
         vscode.env.openExternal(vscode.Uri.parse(url));
     }

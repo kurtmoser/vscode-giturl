@@ -39,7 +39,7 @@ Supported properties for "giturl.domains" entry:
 - "lineRange": Fragment for marking line range in url
 
 Supported keys for url pattern:
-{domain}, {user}, {repo}, {path},  {revision}, {line}, {line_end}
+{domain}, {user}, {repo}, {path},  {revision}, {line}, {lineEnd}
 
 Example configurations:
 ```
@@ -57,7 +57,7 @@ Example configurations:
         "urlCommit": "http://{domain}/projects/{user}/repos/{repo}/browse/{path}?at={revision}",
         "urlBranch": "http://{domain}/projects/{user}/repos/{repo}/browse/{path}?at=refs/heads/{revision}",
         "line": "#{line}",
-        "lineRange": "#{line}-{line_end}"
+        "lineRange": "#{line}-{lineEnd}"
     }
 }
 ```
