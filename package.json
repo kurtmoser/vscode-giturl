@@ -1,14 +1,23 @@
 {
     "name": "giturl",
     "displayName": "GitUrl",
-    "description": "Open git repos in browser",
-    "version": "0.0.1",
-    "publisher": "Kurt Moser",
+    "description": "Open git repos in browser directly from Visual Studio Code",
+    "version": "1.0.1",
+    "publisher": "kurtmoser",
+    "author": {
+        "name": "Kurt Moser",
+        "email": "kurt@suvaline.com"
+    },
+    "license": "SEE LICENSE IN LICENSE",
+    "homepage": "https://github.com/kurtmoser/vscode-giturl/blob/master/README.md",
     "engines": {
         "vscode": "^1.36.0"
     },
     "categories": [
         "Other"
+    ],
+    "keywords": [
+        "git"
     ],
     "icon": "images/icon.png",
     "activationEvents": [
@@ -46,23 +55,23 @@
                             },
                             "url": {
                                 "type": "string",
-                                "description": "Default branch url format"
+                                "description": "Default branch url pattern"
                             },
                             "urlCurrentBranch": {
                                 "type": "string",
-                                "description": "Current branch url format"
+                                "description": "Current branch url pattern"
                             },
                             "urlCommit": {
                                 "type": "string",
-                                "description": "Current commit url format"
+                                "description": "Current commit url pattern"
                             },
                             "line": {
                                 "type": "string",
-                                "description": "Line fragment format"
+                                "description": "Line fragment pattern"
                             },
                             "lineRange": {
                                 "type": "string",
-                                "description": "Line range fragment format"
+                                "description": "Line range fragment pattern"
                             }
                         }
                     }
