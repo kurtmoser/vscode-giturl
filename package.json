@@ -2,7 +2,7 @@
     "name": "giturl",
     "displayName": "GitUrl",
     "description": "Open git repos in browser directly from Visual Studio Code",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "publisher": "kurtmoser",
     "author": {
         "name": "Kurt Moser",
@@ -105,7 +105,7 @@
         "@types/glob": "^7.1.1",
         "@types/mocha": "^7.0.2",
         "@types/node": "^13.11.0",
-        "@types/vscode": "^1.43.0",
+        "@types/vscode": "^1.36.0",
         "eslint": "^6.8.0",
         "@typescript-eslint/parser": "^2.26.0",
         "@typescript-eslint/eslint-plugin": "^2.26.0",
