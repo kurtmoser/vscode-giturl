@@ -81,9 +81,9 @@ function activate(context) {
 
         repoData = {
             'domain': remoteOriginParts.domain,
-            'user': remoteOriginParts.user,
+            'user': remoteOriginParts.user.replace(/^~/, ''),
             'repo': remoteOriginParts.repo,
-            'path': fileName.substring(localBase.length + 1),
+            'path': fileName.substring(localBase.length + 1).replace(/\\/g, '/'),
 
             'currentCommit': currentCommit,
             'currentBranch': currentBranch,
