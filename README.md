@@ -1,65 +1,63 @@
-# giturl README
+# Open git repos in browser directly from VS Code
 
-This is the README for your extension "giturl". After writing up a brief description, we recommend including the following sections.
+This lightweight plugin was created as I often need to point out specific spots in repos to other people, bookmark them for future use for myself etc. Instead of opening repo in browser and browsing to necessary file/line manually GitUrl plugin allows to do it directly from Visual Studio Code automatically.
 
-## Features
+GitHub, Bitbucket and GitLab repos are supported out of the box.
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+![Animated screenshot of GitUrl in use](./assets/vscode-giturl-demo.gif)
 
-For example if there is an image subfolder under your extension project workspace:
+## Installation
 
-\!\[feature X\]\(images/feature-x.png\)
+Clone or install repo into new subdirectory in Visual Studio Code extensions directory (~/.vscode/extensions)
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+Linux
+```
+git clone https://github.com/kurtmoser/vscode-giturl.git ~/.vscode/extensions/giturl
+```
 
-## Requirements
+Mac
+```
+git clone https://github.com/kurtmoser/vscode-giturl.git ~/.vscode/extensions/giturl
+```
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Windows
+```
+git clone https://github.com/kurtmoser/vscode-giturl.git "C:\Users\<username>\.vscode\extensions\giturl
+```
 
-## Extension Settings
+## Configuration
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+GitUrl supports GitHub, Bitbucket and GitLab repos out of the box. However you can additionally configure your own self-hosted git services by adding new entries to "giturl.domains" array in settings.
 
-For example:
+Entry key must be domain name where git service is hosted.
 
-This extension contributes the following settings:
+Supported properties for "giturl.domains" entry:
+- "url": Default branch url pattern (required)
+- "urlCommit": Commit url pattern
+- "urlBranch": Branch url pattern
+- "line": Fragment for marking specific line in url
+- "lineRange": Fragment for marking line range in url
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+Supported keys for url pattern:
+{domain}, {user}, {repo}, {path},  {revision}, {line}, {line_end}
 
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Example configurations:
+```
+"giturl.domains": {
+    "mydomain.com": {
+        "url": "https://{domain}/{user}/{repo}/blob/{revision}/{path}",
+        "line": "#L{line}"
+    }
+}
+```
+```
+"giturl.domains": {
+    "mydomain.net": {
+        "url": "http://{domain}/projects/{user}/repos/{repo}/browse/{path}",
+        "urlCommit": "http://{domain}/projects/{user}/repos/{repo}/browse/{path}?at={revision}",
+        "urlBranch": "http://{domain}/projects/{user}/repos/{repo}/browse/{path}?at=refs/heads/{revision}",
+        "line": "#{line}",
+        "lineRange": "#{line}-{line_end}"
+    }
+}
+```
