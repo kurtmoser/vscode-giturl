@@ -92,53 +92,59 @@ function activate(context) {
     }
 
     async function getRemoteOrigin(dirname) {
-        const { stdout, stderr } = await exec('git config --list', { cwd: dirname });
+        try {
+            const {stdout} = await exec('git config --list', { cwd: dirname });
 
-        let remoteOrigin = null;
-        let lines = stdout.match(/[^\r\n]+/g);
-        lines.forEach(line => {
-            let res = line.match(/^remote\.origin\.url=(.+)$/);
-            if (res) {
-                remoteOrigin = res[1];
+            let remoteOrigin = null;
+            let lines = stdout.match(/[^\r\n]+/g);
+            lines.forEach(line => {
+                let res = line.match(/^remote\.origin\.url=(.+)$/);
+                if (res) {
+                    remoteOrigin = res[1];
 
-                return;
-            }
-        });
+                    return;
+                }
+            });
 
-        return remoteOrigin;
+            return remoteOrigin;
+        } catch(e) {
+        }
     }
 
     async function getGitLocalBase(dirname) {
-        const { stdout, stderr } = await exec('git rev-parse --show-toplevel', { cwd: dirname });
+        try {
+            const {stdout} = await exec('git rev-parse --show-toplevel', { cwd: dirname });
 
-        let res = stdout.replace(/\r?\n|\r/g, '');
-
-        return res;
+            return stdout.trim();
+        } catch(e) {
+        }
     }
 
     async function getGitCurrentBranch(dirname) {
-        const { stdout, stderr } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: dirname });
+        try {
+            const {stdout} = await exec('git rev-parse --abbrev-ref HEAD', { cwd: dirname });
 
-        let res = stdout.replace(/\r?\n|\r/g, '');
-
-        return res;
+            return stdout.trim();
+        } catch(e) {
+        }
     }
 
     async function getGitDefaultBranch(dirname) {
-        const { stdout, stderr } = await exec('git symbolic-ref refs/remotes/origin/HEAD', { cwd: dirname });
+        try {
+            const {stdout} = await exec('git symbolic-ref refs/remotes/origin/HEAD', { cwd: dirname });
 
-        let res = stdout.replace(/\r?\n|\r/g, '');
-        res = res.replace(/^refs\/remotes\/origin\//, '');
-
-        return res;
+            return stdout.trim().replace(/^refs\/remotes\/origin\//, '');
+        } catch(e) {
+        }
     }
 
     async function getGitCurrentCommit(dirname, filename) {
-        const { stdout, stderr } = await exec('git rev-list -1 HEAD ' + filename, { cwd: dirname });
+        try {
+            const {stdout} = await exec('git rev-list -1 HEAD ' + filename, { cwd: dirname });
 
-        let res = stdout.replace(/\r?\n|\r/g, '');
-
-        return res;
+            return stdout.trim();
+        } catch(e) {
+        }
     }
 
     function buildUrl(pattern, params) {
